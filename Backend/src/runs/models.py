@@ -1,6 +1,6 @@
 import pathlib
-from pydantic import BaseModel
-from typing import Optional, Any
+from pydantic import BaseModel,Field
+from typing import Optional, List, Dict, Any
 
 # -------------------------
 # Path to schema.sql
@@ -21,8 +21,7 @@ class RunModel(BaseModel):
     latency: Optional[float] = None
     status: str
     error: Optional[str] = None
-    steps: Optional[Any] = None
-
+    steps: Optional[List[Dict]] = Field(default_factory=list)
 
 # -------------------------
 # Helper to load SQL file
