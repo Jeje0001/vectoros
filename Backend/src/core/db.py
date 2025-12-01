@@ -1,9 +1,10 @@
-import os
 import psycopg2
+from psycopg2.extras import RealDictCursor, Json
 import json
-from psycopg2.extras import Json
-from psycopg2.extras import RealDictCursor
+import uuid
+import os
 from dotenv import load_dotenv
+
 
 load_dotenv()
 
@@ -15,41 +16,61 @@ def get_connection():
     return psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
 
 def init_db():
-    """Create the runs table if it doesn't already exist."""
     schema_path = os.path.join(
         os.path.dirname(__file__).replace("core", "runs"),
         "schema.sql"
     )
-
-    if not os.path.exists(schema_path):
-        raise RuntimeError(f"schema.sql not found at path: {schema_path}")
-
     with open(schema_path, "r") as f:
-        schema_sql = f.read()
+        schema = f.read()
 
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute(schema_sql)
+    cur.execute(schema)
     conn.commit()
     cur.close()
     conn.close()
 
-
 def create_run(data: dict):
+    # Ensure run_id is a string
+    run_id = data.get("run_id")
+    if isinstance(run_id, uuid.UUID):
+        run_id = str(run_id)
+    elif not run_id:
+        run_id = str(uuid.uuid4())
+    data["run_id"] = run_id
+    payload = {
+            "run_id": data["run_id"],
+            "model": data["model"],
+            "input": data["input"],
+            "output": data["output"],
+            "tokens": data["tokens"],
+            "cost": data["cost"],
+            "latency": data["latency"],
+            "status": data["status"],
+            "error": data["error"],
+            "steps": Json(data["steps"])
+        }
+
+   
+
     conn = get_connection()
     cur = conn.cursor()
 
-    # Force JSON to remain a list (or whatever it is)
-    if "steps" in data:
-        data["steps"] = Json(data["steps"])
-
     cur.execute(
         """
-        INSERT INTO runs (model, input, output, tokens, cost, latency, status, error, steps)
-        VALUES (%(model)s, %(input)s, %(output)s, %(tokens)s, %(cost)s, %(latency)s, %(status)s, %(error)s, %(steps)s)
+        INSERT INTO runs (
+            run_id, model, input, output, tokens, cost, latency, status, error, steps
+        )
+        VALUES (
+            %(run_id)s, %(model)s, %(input)s, %(output)s,
+            %(tokens)s, %(cost)s, %(latency)s, %(status)s,
+            %(error)s, %(steps)s
+        )
         RETURNING *;
         """,
-        data
+        payload
+     
+
     )
 
     row = cur.fetchone()
@@ -58,14 +79,49 @@ def create_run(data: dict):
     conn.close()
     return row
 
-
-
 def list_runs_from_db():
-    """Return all runs sorted by creation time (newest first)."""
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM runs ORDER BY created_at DESC;")
+
+    cur.execute("""
+        SELECT
+            id,
+            run_id,
+            model,
+            input,
+            output,
+            tokens,
+            cost,
+            latency,
+            status,
+            error,
+            steps,
+            created_at,
+            started_at
+        FROM runs
+        ORDER BY created_at DESC;
+    """)
+
     rows = cur.fetchall()
+
+    result = []
+    for row in rows:
+        result.append({
+            "id": row[0],
+            "run_id": str(row[1]),
+            "model": row[2],
+            "input": row[3],
+            "output": row[4],
+            "tokens": row[5],
+            "cost": row[6],
+            "latency": row[7],
+            "status": row[8],
+            "error": row[9],
+            "steps": row[10],  # psycopg auto-converts JSONB → Python dict
+            "created_at": row[11].isoformat() if row[11] else None,
+            "started_at": row[12].isoformat() if row[12] else None
+        })
+
     cur.close()
     conn.close()
-    return rows
+    return result
