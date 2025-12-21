@@ -1,91 +1,167 @@
 # VectorOS
 
-VectorOS is a runtime layer for executing, tracing, and monitoring AI agents with reliability and structure.  
-It provides a stable execution environment for multi-step agents, offering full visibility into runs, tool calls, and workflow behavior.
+VectorOS is the execution, tracing, and observability layer for AI agents.  
+It standardizes how agents run, stores every step, and provides the foundation for debugging, monitoring, and scaling multi-step AI workflows.
 
----
+Modern agents behave like black boxes—unpredictable execution, no traceability, unstable long-context behavior.  
+VectorOS fixes that by providing a structured runtime.
+
 
 ## Why VectorOS Exists
 
-Modern agents behave like black boxes:
+Multi-agent systems break for three reasons:
 
-- No insight into reasoning steps  
-- No consistent execution structure  
-- Hard to debug  
-- Hard to monitor  
-- Hard to scale  
+1. **No consistent execution contract**  
+   Each run has different fields, shapes, and assumptions.
 
-VectorOS fixes this by acting like an **OS for agents**:
-a layer that standardizes execution, captures every step, and gives developers full traceability.
+2. **No traceability**  
+   Developers cannot see tool calls, reasoning steps, nested execution, or errors.
 
----
+3. **No observability**  
+   Hard to debug, hard to monitor, impossible to scale beyond toy demos.
 
-## Architecture (Phase 1)
+VectorOS creates an OS-style layer for agents:
 
-**Backend**
-- FastAPI for routing  
-- Pydantic for strict validation  
-- PostgreSQL (Supabase) for persistence  
-- RealDictCursor for JSON-friendly DB output  
-- Layered infrastructure  
-  - `/api` – routing layer  
-  - `/models` – Pydantic models  
-  - `/core` – DB + infrastructure  
-  - `main.py` – FastAPI entrypoint  
+- unified run schema  
+- strict validation  
+- full step/trace capture  
+- consistent storage  
+- predictable agent execution  
 
-**Current Capabilities**
-- Database connection layer  
-- Run schema + validation  
-- Clean separation of API, models, and DB layers  
-- Base structure needed for traces, tool calls, and dashboards  
+Agents should not be mysterious.  
+VectorOS makes them structured.
 
-Phase 1 establishes the foundation for everything else.
 
----
+## Architecture
 
-## Roadmap
+### Backend
+- **FastAPI** — routing layer  
+- **Pydantic v2** — strict validation & normalization  
+- **PostgreSQL (JSONB)** — run + trace storage  
+- **Supabase** — managed Postgres  
+- **RealDictCursor** — returns Python-friendly dict rows  
 
-### Phase 2 — Run Endpoints
-- Create run  
-- List runs  
-- Database insert + fetch  
-- Prepare for trace linking  
+### Project Layout
+Backend/
+├── src/
+│ ├── api/ # FastAPI entry + routing
+│ ├── runs/ # Run router + RunModel
+│ ├── core/ # DB, security, rate limiting
+│ └── ...
+├── tests/ # Full ingestion test suite
+└── clients/python/ # send_run.py ingestion client
 
-### Phase 3 — Trace Engine
-- Step-by-step execution storage  
-- Token + latency tracking  
-- Error snapshots  
-- Execution graph foundations  
 
-### Phase 4 — Tool Execution Layer
-- Standard interface for tool calls  
-- Capture arguments + results  
-- Error reporting  
-- Metadata storage  
 
-### Phase 5 — UI Trace Viewer
-- Web dashboard  
-- Run list view  
-- Step-by-step trace viewer  
-- Cost, latency, token charts  
-- Debug panel  
+## Phase 2 — Run Ingestion Engine (Completed)
 
----
+VectorOS can now receive and store any agent run with full validation and trace structure.
+
+### Core Features
+✔ `POST /runs` endpoint  
+✔ API key authentication  
+✔ Strict run contract (Pydantic v2)  
+✔ Automatic:
+- `run_id` (UUID)
+- timestamps (`created_at`, `started_at`)
+- step normalization  
+✔ JSONB persistence for steps/traces  
+✔ Error/status validation  
+✔ Rate limiting per API key  
+✔ 12 ingestion tests passing  
+✔ External client ingestion via `send_run.py`  
+
+### What This Enables
+VectorOS now acts as a production-grade ingestion pipeline for any AI agent:
+
+- structured run logging  
+- trace capture (steps, children, metadata)  
+- error handling  
+- model/token/latency storage  
+- multi-step workflow support  
+- foundation for future dashboards  
+
+Phase 2 is the moment where VectorOS becomes a functional product.
+
+
+## How Ingestion Works
+
+### 1. Client sends a run → `POST /runs`
+VectorOS validates:
+
+- API key  
+- schema correctness  
+- step structure  
+- status/error consistency  
+- illegal fields (`created_at`, `started_at`)  
+- normalization of all fields  
+
+### 2. Pydantic Run Contract
+Final enforced shape:
+
+run_id: UUID
+model: str
+input: str
+output: str | None
+tokens: int | None
+cost: float | None
+latency: float | None
+status: "success" | "error" | "running" | "timeout"
+error: str | None
+steps: List[Dict] # always normalized
+
+
+### 3. Database Ingestion (Postgres JSONB)
+Stores:
+
+- metadata  
+- performance metrics  
+- timestamps  
+- run_id  
+- full steps + nested children  
+
+### 4. Retrieval returns structured run objects
+Used in Phase 3 for diagnostics, trace viewing, and agent evaluation.
+
+
+## Phase 3 — Run Retrieval + Diagnostics Engine (Next)
+
+**Goals**
+
+- `GET /runs/{id}`
+- filtering (model, status, date ranges)
+- trace retrieval
+- nested step expansion
+- error diagnostics foundation
+- metadata & statistics enrichment
+- early observability tooling
+
+This is where VectorOS evolves from “storage” into a **runtime intelligence layer**.
+
 
 ## Long-Term Vision
 
-VectorOS becomes the structured backbone for agents:
+VectorOS becomes the standardized backbone for agent execution:
 
-- Unified agent lifecycle  
-- Trace recording  
-- Tool routing  
-- Memory integration  
-- Workflow graphs  
-- Production-level reliability  
-- Full observability and consistency  
+- unified agent lifecycle  
+- step-by-step traces  
+- workflow graphs  
+- multi-agent orchestration  
+- memory routing  
+- context compression  
+- compute optimization (low-energy/low-water routing)  
+- tool routing & validation  
+- agent evaluation layer  
 
-Agents should not be unpredictable.  
-VectorOS makes them transparent.
+**Endgame:**  
+Make operating fleets of agents as routine and reliable as deploying a web service.
 
----
 
+## Current Status
+
+**Phase 2 Complete**  
+- Ingestion pipeline operational  
+- All tests passing  
+- Client ingestion working  
+
+**Phase 3 Begins Now**
