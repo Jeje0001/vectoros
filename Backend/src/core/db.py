@@ -117,7 +117,7 @@ def list_runs_from_db():
             "latency": row[7],
             "status": row[8],
             "error": row[9],
-            "steps": row[10],  # psycopg auto-converts JSONB → Python dict
+            "steps": row[10], 
             "created_at": row[11].isoformat() if row[11] else None,
             "started_at": row[12].isoformat() if row[12] else None
         })
@@ -125,3 +125,115 @@ def list_runs_from_db():
     cur.close()
     conn.close()
     return result
+def list_run_summaries_from_db(limit: int, cursor: str | None):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    if cursor is None:
+        cur.execute("""
+            SELECT 
+                run_id,
+                model,
+                status,
+                tokens,
+                cost,
+                latency,
+                error,
+                created_at
+            FROM runs
+            ORDER BY created_at DESC
+            LIMIT %s;
+        """, (limit,))
+    else:
+        cur.execute("""
+            SELECT 
+                run_id,
+                model,
+                status,
+                tokens,
+                cost,
+                latency,
+                error,
+                created_at
+            FROM runs
+            WHERE created_at < %s
+            ORDER BY created_at DESC
+            LIMIT %s;
+        """, (cursor, limit))
+
+    rows = cur.fetchall()
+
+    items = []
+    for row in rows:
+        items.append({
+            "run_id": str(row[0]),
+            "model": row[1],
+            "status": row[2],
+            "tokens": row[3],
+            "cost": row[4],
+            "latency": row[5],
+            "error": row[6],
+            "created_at": row[7].isoformat() if row[7] else None
+        })
+
+    if len(rows) == limit:
+        next_cursor = rows[-1][7].isoformat() if rows[-1][7] else None
+    else:
+        next_cursor = None
+
+    cur.close()
+    conn.close()
+
+    return {
+        "items": items,
+        "next_cursor": next_cursor
+    }
+
+
+def get_run_by_run_id(run_id: str):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT
+            id,
+            run_id,
+            model,
+            input,
+            output,
+            tokens,
+            cost,
+            latency,
+            status,
+            error,
+            steps,
+            created_at,
+            started_at
+        FROM runs
+        WHERE run_id = %s
+        LIMIT 1;
+    """, (run_id,))
+
+    row = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    if row is None:
+        return None
+
+    return {
+        "id": row[0],
+        "run_id": str(row[1]),
+        "model": row[2],
+        "input": row[3],
+        "output": row[4],
+        "tokens": row[5],
+        "cost": row[6],
+        "latency": row[7],
+        "status": row[8],
+        "error": row[9],
+        "steps": row[10],
+        "created_at": row[11].isoformat() if row[11] else None,
+        "started_at": row[12].isoformat() if row[12] else None
+    }

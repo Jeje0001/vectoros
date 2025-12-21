@@ -6,9 +6,6 @@ from src.core.rate_limit import check_rate_limit
 
 router = APIRouter()
 
-@router.get("/")
-def list_runs():
-    return list_runs_from_db()
 
 @router.post("/")
 async def create_run_route( request: Request, payload: RunModel):
