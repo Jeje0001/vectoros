@@ -125,9 +125,13 @@ def list_runs_from_db():
     cur.close()
     conn.close()
     return result
+
+
 def list_run_summaries_from_db(limit: int, cursor: str | None):
     conn = get_connection()
     cur = conn.cursor()
+    print("USING FILE:", __file__)
+
 
     if cursor is None:
         cur.execute("""
@@ -139,7 +143,8 @@ def list_run_summaries_from_db(limit: int, cursor: str | None):
                 cost,
                 latency,
                 error,
-                created_at
+                created_at,
+                input  
             FROM runs
             ORDER BY created_at DESC
             LIMIT %s;
@@ -154,7 +159,8 @@ def list_run_summaries_from_db(limit: int, cursor: str | None):
                 cost,
                 latency,
                 error,
-                created_at
+                created_at,
+                input
             FROM runs
             WHERE created_at < %s
             ORDER BY created_at DESC
@@ -166,20 +172,24 @@ def list_run_summaries_from_db(limit: int, cursor: str | None):
     items = []
     for row in rows:
         items.append({
-            "run_id": str(row[0]),
-            "model": row[1],
-            "status": row[2],
-            "tokens": row[3],
-            "cost": row[4],
-            "latency": row[5],
-            "error": row[6],
-            "created_at": row[7].isoformat() if row[7] else None
+            "run_id": str(row["run_id"]),
+            "model": row["model"],
+            "status": row["status"],
+            "tokens": row["tokens"],
+            "cost": row["cost"],
+            "latency": row["latency"],
+            "error": row["error"],
+            "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+            "input":row["input"]
         })
 
+
     if len(rows) == limit:
-        next_cursor = rows[-1][7].isoformat() if rows[-1][7] else None
+        last_created_at = rows[-1]["created_at"]
+        next_cursor = last_created_at.isoformat() if last_created_at else None
     else:
         next_cursor = None
+
 
     cur.close()
     conn.close()
@@ -223,17 +233,18 @@ def get_run_by_run_id(run_id: str):
         return None
 
     return {
-        "id": row[0],
-        "run_id": str(row[1]),
-        "model": row[2],
-        "input": row[3],
-        "output": row[4],
-        "tokens": row[5],
-        "cost": row[6],
-        "latency": row[7],
-        "status": row[8],
-        "error": row[9],
-        "steps": row[10],
-        "created_at": row[11].isoformat() if row[11] else None,
-        "started_at": row[12].isoformat() if row[12] else None
+        "id": row["id"],
+        "run_id": str(row["run_id"]),
+        "model": row["model"],
+        "input": row["input"],
+        "output": row["output"],
+        "tokens": row["tokens"],
+        "cost": row["cost"],
+        "latency": row["latency"],
+        "status": row["status"],
+        "error": row["error"],
+        "steps": row["steps"],
+        "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+        "started_at": row["started_at"].isoformat() if row["started_at"] else None
     }
+

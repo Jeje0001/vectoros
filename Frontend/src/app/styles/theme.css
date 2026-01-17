@@ -1,0 +1,27 @@
+:root {
+  --bg-main: #0a0a0a;
+  --bg-panel: #1a1a1a;
+  --bg-panel-hover: #222222;
+
+  --border-subtle: #2a2a2a;
+
+  --text-primary: #f5f5f5;
+  --text-secondary: #b5b5b5;
+  --text-muted: #7a7a7a;
+
+  --color-success: #10b981;
+  --color-error: #ef4444;
+  --color-warning: #f59e0b;
+  --color-slow: #eab308;
+  --color-accent: #8b5cf6;
+
+  --radius: 8px;
+}
+
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #e5e7eb;
+  --card: #1a1a1a;
+  --border: #3a3a3a;
+}

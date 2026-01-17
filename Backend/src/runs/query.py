@@ -31,6 +31,7 @@ async def list_runs(
     try:
         result = list_run_summaries_from_db(limit=limit, cursor=cursor)
     except Exception as e:
+        print("DB ERROR",e)
         raise HTTPException(
             status_code=500,
             detail="failed to fetch runs"
@@ -46,6 +47,7 @@ async def list_runs(
             "latency": row.get("latency"),
             "error": row.get("error"),
             "created_at": row.get("created_at"),
+            "input": row.get("input")
         }
         items.append(summary)
     count = len(items)
@@ -76,22 +78,27 @@ def get_run_by_id(run_id: str):
 
     try:
         run = get_run_by_run_id(run_id)
-    except Exception:
-        raise HTTPException(status_code=500, detail="failed to fetch run")
+    except Exception as e:
+        print("\n[RUN FETCH ERROR]", e, "\n")
+        raise HTTPException(status_code=500, detail=str(e))
 
     if run is None:
         raise HTTPException(status_code=404, detail="run not found")
 
     steps = run.get("steps")
     if not isinstance(steps, list):
-        raise HTTPException(status_code=400, detail="run has invalid step structure")
+        raise HTTPException(
+            status_code=400,
+            detail=f"run has invalid step structure: {type(steps)}"
+        )
 
     if len(steps) == 0:
         raise HTTPException(status_code=400, detail="run has no steps")
 
     try:
         full_run = build_full_run_structure(run)
-    except Exception:
-        raise HTTPException(status_code=500, detail="failed to build run structure")
+    except Exception as e:
+        print("\n[BUILD STRUCTURE ERROR]", e, "\n")
+        raise HTTPException(status_code=500, detail=str(e))
 
     return full_run
