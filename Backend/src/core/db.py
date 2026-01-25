@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 
 
 load_dotenv()
+from src.core.config import DEFAULT_PROJECT_ID
+
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
@@ -40,6 +42,7 @@ def create_run(data: dict):
     data["run_id"] = run_id
     payload = {
             "run_id": data["run_id"],
+            "project_id": DEFAULT_PROJECT_ID,
             "model": data["model"],
             "input": data["input"],
             "output": data["output"],
@@ -59,10 +62,10 @@ def create_run(data: dict):
     cur.execute(
         """
         INSERT INTO runs (
-            run_id, model, input, output, tokens, cost, latency, status, error, steps
+            run_id, project_id, model, input, output, tokens, cost, latency, status, error, steps
         )
         VALUES (
-            %(run_id)s, %(model)s, %(input)s, %(output)s,
+            %(run_id)s, %(project_id)s, %(model)s, %(input)s, %(output)s,
             %(tokens)s, %(cost)s, %(latency)s, %(status)s,
             %(error)s, %(steps)s
         )
@@ -99,8 +102,9 @@ def list_runs_from_db():
             created_at,
             started_at
         FROM runs
+        WHERE project_id= %s
         ORDER BY created_at DESC;
-    """)
+    """,(DEFAULT_PROJECT_ID,))
 
     rows = cur.fetchall()
 
@@ -130,8 +134,6 @@ def list_runs_from_db():
 def list_run_summaries_from_db(limit: int, cursor: str | None):
     conn = get_connection()
     cur = conn.cursor()
-    print("USING FILE:", __file__)
-
 
     if cursor is None:
         cur.execute("""
@@ -146,9 +148,10 @@ def list_run_summaries_from_db(limit: int, cursor: str | None):
                 created_at,
                 input  
             FROM runs
+            WHERE project_id = %s
             ORDER BY created_at DESC
             LIMIT %s;
-        """, (limit,))
+        """, (DEFAULT_PROJECT_ID, limit))
     else:
         cur.execute("""
             SELECT 
@@ -162,10 +165,11 @@ def list_run_summaries_from_db(limit: int, cursor: str | None):
                 created_at,
                 input
             FROM runs
-            WHERE created_at < %s
+            WHERE project_id = %s
+              AND created_at < %s
             ORDER BY created_at DESC
             LIMIT %s;
-        """, (cursor, limit))
+        """, (DEFAULT_PROJECT_ID, cursor, limit))
 
     rows = cur.fetchall()
 
@@ -180,8 +184,9 @@ def list_run_summaries_from_db(limit: int, cursor: str | None):
             "latency": row["latency"],
             "error": row["error"],
             "created_at": row["created_at"].isoformat() if row["created_at"] else None,
-            "input":row["input"]
+            "input": row["input"]
         })
+
 
 
     if len(rows) == limit:
@@ -217,12 +222,14 @@ def get_run_by_run_id(run_id: str):
             status,
             error,
             steps,
+            diagnosis,
             created_at,
             started_at
         FROM runs
         WHERE run_id = %s
+          AND project_id = %s
         LIMIT 1;
-    """, (run_id,))
+    """, (run_id, DEFAULT_PROJECT_ID))
 
     row = cur.fetchone()
 
@@ -244,7 +251,28 @@ def get_run_by_run_id(run_id: str):
         "status": row["status"],
         "error": row["error"],
         "steps": row["steps"],
+        "diagnosis": row["diagnosis"],
         "created_at": row["created_at"].isoformat() if row["created_at"] else None,
         "started_at": row["started_at"].isoformat() if row["started_at"] else None
     }
+
+
+
+def save_run_diagnosis(run_id: str, diagnosis: dict):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        UPDATE runs
+        SET diagnosis = %s
+        WHERE run_id = %s
+          AND project_id = %s;
+        """,
+        (Json(diagnosis), run_id, DEFAULT_PROJECT_ID),
+    )
+
+    conn.commit()
+    cur.close()
+    conn.close()
 
