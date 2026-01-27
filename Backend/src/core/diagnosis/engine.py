@@ -73,7 +73,7 @@ def diagnose_run(run: dict) -> DiagnosisResult:
 }
 
 
-    prompt = build_diagnosis_prompt(diagnosis_dict)
+    prompt = build_diagnosis_prompt(diagnosis_dict,run.get("input"))
     suggested_fix = run_gpt_diagnosis(prompt)
 
     return DiagnosisResult(

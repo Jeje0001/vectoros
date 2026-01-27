@@ -27,3 +27,12 @@ CREATE TABLE IF NOT EXISTS runs (
     started_at TIMESTAMP DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS memory (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    content TEXT NOT NULL,
+    embedding VECTOR(1536) NOT NULL,
+    metadata JSONB,
+
+    created_at TIMESTAMP DEFAULT NOW()
+);

@@ -8,14 +8,14 @@ router = APIRouter(prefix="/runs", tags=["diagnosis"])
 
 
 @router.post("/{run_id}/diagnose")
-async def diagnose_run_route(run_id: str, request: Request):
+async def diagnose_run_route(run_id: str, request: Request ,force: bool = False):
     validate_api_key(request)
 
     run = get_run_by_run_id(run_id)
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
 
-    if run.get("diagnosis"):
+    if run.get("diagnosis") and not force:
         return run["diagnosis"]
 
     diagnosis = diagnose_run(run)
