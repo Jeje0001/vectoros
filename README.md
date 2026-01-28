@@ -1,167 +1,186 @@
 # VectorOS
 
-VectorOS is the execution, tracing, and observability layer for AI agents.  
-It standardizes how agents run, stores every step, and provides the foundation for debugging, monitoring, and scaling multi-step AI workflows.
+AI agent observability platform with semantic memory and intelligent diagnosis.
 
-Modern agents behave like black boxes—unpredictable execution, no traceability, unstable long-context behavior.  
-VectorOS fixes that by providing a structured runtime.
+## What It Does
 
+VectorOS provides comprehensive observability for AI agent systems:
 
-## Why VectorOS Exists
-
-Multi-agent systems break for three reasons:
-
-1. **No consistent execution contract**  
-   Each run has different fields, shapes, and assumptions.
-
-2. **No traceability**  
-   Developers cannot see tool calls, reasoning steps, nested execution, or errors.
-
-3. **No observability**  
-   Hard to debug, hard to monitor, impossible to scale beyond toy demos.
-
-VectorOS creates an OS-style layer for agents:
-
-- unified run schema  
-- strict validation  
-- full step/trace capture  
-- consistent storage  
-- predictable agent execution  
-
-Agents should not be mysterious.  
-VectorOS makes them structured.
+- **Run Tracking**: Capture detailed execution traces with step-level granularity
+- **Error Detection**: Automatically identify failures in agent workflows
+- **Root Cause Analysis**: AI-powered diagnosis using GPT-4
+- **Semantic Memory**: Learn from past failures to improve future diagnoses
+- **Cost Tracking**: Monitor token usage and API costs per run
 
 
 ## Architecture
 
-### Backend
-- **FastAPI** — routing layer  
-- **Pydantic v2** — strict validation & normalization  
-- **PostgreSQL (JSONB)** — run + trace storage  
-- **Supabase** — managed Postgres  
-- **RealDictCursor** — returns Python-friendly dict rows  
+### Backend (FastAPI + Python)
+- RESTful API for run tracking and diagnosis
+- OpenAI integration for embeddings and GPT-4 analysis
+- In-memory vector store for semantic search
+- Modular phase-based design
 
-### Project Layout
-Backend/
-├── src/
-│ ├── api/ # FastAPI entry + routing
-│ ├── runs/ # Run router + RunModel
-│ ├── core/ # DB, security, rate limiting
-│ └── ...
-├── tests/ # Full ingestion test suite
-└── clients/python/ # send_run.py ingestion client
+### Frontend (React + TypeScript)
+- Run visualization dashboard
+- Real-time error detection
+- Interactive diagnosis interface
+- Cost analytics
 
+### Key Components
 
+**Phase 5: Diagnosis Engine**
+- One-click root cause analysis
+- AI-generated fix suggestions
+- Reliability scoring
+- Cost estimation per diagnosis
 
-## Phase 2 — Run Ingestion Engine (Completed)
+**Phase 6: Semantic Memory**
+- Embedding-based memory storage
+- Cosine similarity search (top-K retrieval)
+- Historical context integration
+- Failure-safe architecture (memory never breaks diagnosis)
 
-VectorOS can now receive and store any agent run with full validation and trace structure.
+## Technology Stack
 
-### Core Features
-✔ `POST /runs` endpoint  
-✔ API key authentication  
-✔ Strict run contract (Pydantic v2)  
-✔ Automatic:
-- `run_id` (UUID)
-- timestamps (`created_at`, `started_at`)
-- step normalization  
-✔ JSONB persistence for steps/traces  
-✔ Error/status validation  
-✔ Rate limiting per API key  
-✔ 12 ingestion tests passing  
-✔ External client ingestion via `send_run.py`  
+**Backend:**
+- Python 3.9+
+- FastAPI
+- OpenAI API (text-embedding-3-small, GPT-4)
+- NumPy for vector operations
 
-### What This Enables
-VectorOS now acts as a production-grade ingestion pipeline for any AI agent:
+**Frontend:**
+- React 18
+- TypeScript
+- Tailwind CSS
+- Vite
 
-- structured run logging  
-- trace capture (steps, children, metadata)  
-- error handling  
-- model/token/latency storage  
-- multi-step workflow support  
-- foundation for future dashboards  
+**APIs:**
+- `/runs` - Create and retrieve execution runs
+- `/diagnose` - Generate AI diagnosis for failures
+- `/memory/add` - Store failure context
+- `/memory/query` - Retrieve similar past failures
 
-Phase 2 is the moment where VectorOS becomes a functional product.
+## Getting Started
 
+### Prerequisites
+- Python 3.9+
+- Node.js 16+
+- OpenAI API key
 
-## How Ingestion Works
+### Backend Setup
 
-### 1. Client sends a run → `POST /runs`
-VectorOS validates:
+1. Clone repository:
+```bash
+   git clone https://github.com/Jeje0001/vectoros.git
+   cd vectoros/backend
+```
 
-- API key  
-- schema correctness  
-- step structure  
-- status/error consistency  
-- illegal fields (`created_at`, `started_at`)  
-- normalization of all fields  
+2. Create virtual environment:
+```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
 
-### 2. Pydantic Run Contract
-Final enforced shape:
+3. Install dependencies:
+```bash
+   pip install -r requirements.txt
+```
 
-run_id: UUID
-model: str
-input: str
-output: str | None
-tokens: int | None
-cost: float | None
-latency: float | None
-status: "success" | "error" | "running" | "timeout"
-error: str | None
-steps: List[Dict] # always normalized
+4. Set environment variables:
+```bash
+   export OPENAI_API_KEY="your-key-here"
+```
 
+5. Run backend:
+```bash
+   python main.py
+```
+   Backend runs on `http://localhost:8000`
 
-### 3. Database Ingestion (Postgres JSONB)
-Stores:
+### Frontend Setup
 
-- metadata  
-- performance metrics  
-- timestamps  
-- run_id  
-- full steps + nested children  
+1. Navigate to frontend:
+```bash
+   cd ../frontend
+```
 
-### 4. Retrieval returns structured run objects
-Used in Phase 3 for diagnostics, trace viewing, and agent evaluation.
+2. Install dependencies:
+```bash
+   npm install
+```
 
+3. Run frontend:
+```bash
+   npm run dev
+```
+   Frontend runs on `http://localhost:5173`
 
-## Phase 3 — Run Retrieval + Diagnostics Engine (Next)
+### Testing
 
-**Goals**
-
-- `GET /runs/{id}`
-- filtering (model, status, date ranges)
-- trace retrieval
-- nested step expansion
-- error diagnostics foundation
-- metadata & statistics enrichment
-- early observability tooling
-
-This is where VectorOS evolves from “storage” into a **runtime intelligence layer**.
-
-
-## Long-Term Vision
-
-VectorOS becomes the standardized backbone for agent execution:
-
-- unified agent lifecycle  
-- step-by-step traces  
-- workflow graphs  
-- multi-agent orchestration  
-- memory routing  
-- context compression  
-- compute optimization (low-energy/low-water routing)  
-- tool routing & validation  
-- agent evaluation layer  
-
-**Endgame:**  
-Make operating fleets of agents as routine and reliable as deploying a web service.
+Send a test run to verify setup:
+```bash
+curl -X POST http://localhost:8000/runs \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_id": "test-agent",
+    "trace": [...],
+    "metadata": {...}
+  }'
+```
 
 
-## Current Status
+## Key Features
 
-**Phase 2 Complete**  
-- Ingestion pipeline operational  
-- All tests passing  
-- Client ingestion working  
+### 1. Run Tracking
+Track agent execution with detailed step-level traces. Each run captures:
+- Agent actions and observations
+- Timestamps and duration
+- Success/failure status
+- Token usage and costs
 
-**Phase 3 Begins Now**
+### 2. AI-Powered Diagnosis
+When a run fails, VectorOS generates intelligent root cause analysis:
+- Analyzes error context
+- References similar past failures (via semantic memory)
+- Suggests specific fixes
+- Estimates reliability impact
+
+Example diagnosis flow:
+1. Agent run fails
+2. Click "Diagnose" in dashboard
+3. GPT-4 analyzes failure + historical context
+4. Receive actionable recommendations
+
+### 3. Semantic Memory
+VectorOS learns from past failures:
+- Embeds failure contexts using OpenAI embeddings
+- Stores in vector database
+- Retrieves similar failures via cosine similarity
+- Provides historical context to improve diagnoses
+
+Memory is advisory and failure-safe - diagnosis works even if memory fails.
+
+### 4. Cost Analytics
+Track OpenAI API usage:
+- Per-run token consumption
+- Diagnosis costs
+- Historical spending trends
+
+
+
+
+## Future Enhancements
+
+- [ ] Persistent storage backend (PostgreSQL + pgvector)
+- [ ] SDK for easy integration (`pip install vectoros`)
+- [ ] Multi-agent support and comparison
+- [ ] Custom embedding models
+- [ ] Real-time monitoring dashboard
+- [ ] Automated memory optimization
+
+## Why VectorOS?
+
+Built to solve agent observability challenges I encountered in Dr. Cavar's AI research lab at Indiana University. Existing tools lacked semantic understanding of failures and couldn't learn from past incidents.
+
+VectorOS bridges this gap with AI-native observability.
